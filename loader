@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Usage: ./load_xdp.sh <interface>
+IFACE=$1
+CMD=$2
+
+if [[ -z "$IFACE" || -z "$CMD" ]]; then
+    echo "Usage: $0 <network-interface> <cmd>"
+    echo "Available Commands:"
+    echo "activate - loads XDP program into NIC"
+    echo "deactivate - removes XDP program from given NIC"
+    exit 1
+fi
+
+
+if [[ "$CMD" = "activate" || "$CMD" = "-a" ]]; then
+	# Compile the XDP program
+	clang -O2 -Wall -target bpf -I/usr/include -I/usr/include/x86_64-linux-gnu -D__TARGET_ARCH_x86 -c src/xdp_filter.c -o xdp_eth_filter.o
+	# Attach XDP program
+	sudo ip link set dev $IFACE xdp obj xdp_eth_filter.o sec xdp
+	# Check status
+	echo "XDP program attached to $IFACE"
+fi
+
+if [[ "$CMD" = "deactivate" || "$CMD" = "-d" ]]; then
+	sudo ip link set dev $IFACE xdp off
+        echo "XDP program detached from $IFACE"
+fi
